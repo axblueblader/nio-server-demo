@@ -1,5 +1,6 @@
 package com.vietblu.nioserverdemo;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
@@ -33,7 +34,11 @@ public class ReadHandler implements CompletionHandler<Integer, Object> {
             return;
         }
         final String frame = new String(buffer.array(), buffer.arrayOffset(), buffer.position());
-        System.out.println("Received: " + frame);
+        try {
+            System.out.println("Received: " + frame + " from " + channel.getRemoteAddress());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         if (frame.contains(DELIM)) {
             final String[] split = PATTERN.split(frame);
             final StringBuilder last = deque.peekLast();

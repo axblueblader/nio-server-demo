@@ -5,7 +5,6 @@ import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousServerSocketChannel;
 import java.util.Deque;
 import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -24,7 +23,7 @@ public class NioServer implements Runnable {
             final int port = 8989;
             server.bind(new InetSocketAddress(port));
 
-            main.submit(() -> server.accept(null, new AcceptHandler(server, main, worker, dequeue)));
+            main.submit(() -> server.accept(null, new AcceptHandler(server, main, worker)));
 
             System.out.println("Server started at: " + port);
             //noinspection ResultOfMethodCallIgnored

@@ -25,6 +25,7 @@ public class SocketClient {
     }
 
     public String exchange(String mess) throws IOException {
+        System.out.println(socket.getLocalSocketAddress() + " sending " + mess);
         socketOut.println(mess);
         socketOut.flush();
         return socketIn.readLine();

@@ -3,7 +3,6 @@ package com.vietblu.nioserverdemo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -47,6 +46,8 @@ class NioServerTest {
     void buf8_echo1Less8_success() throws Exception {
         final SocketClient client = startClient();
         final String abcde = client.exchange("abcde");
+        client.disconnect();
+
         assertEquals("abcde", abcde);
     }
 
@@ -57,12 +58,15 @@ class NioServerTest {
             final String abcde = client.exchange("abcde" + i);
             assertEquals("abcde" + i, abcde);
         }
+        client.disconnect();
     }
 
     @Test
     void buf8_echo1Equal9_success() throws Exception {
         final SocketClient client = startClient();
         final String res = client.exchange("12345678");
+        client.disconnect();
+
         assertEquals("12345678", res);
     }
 
@@ -72,6 +76,8 @@ class NioServerTest {
         // String with 15 chars
         final String mess16 = new String(new char[15]).replace("\0", "p");
         final String res = client.exchange(mess16);
+        client.disconnect();
+
         assertEquals(mess16, res);
     }
 
@@ -81,12 +87,13 @@ class NioServerTest {
         // String with 16 chars
         final String mess16 = new String(new char[16]).replace("\0", "p");
         final String res = client.exchange(mess16);
+        client.disconnect();
+
         assertEquals(mess16, res);
     }
 
     @Test
     void buf8_echoThread3Task100Equal17_success() throws Exception {
-        final SocketClient client = startClient();
         // String with 16 chars, including \n
         final String mess16 = new String(new char[15]).replace("\0", "p");
         final List<Callable<Object>> tasks = new ArrayList<>();
@@ -95,11 +102,15 @@ class NioServerTest {
         for (int i = 0; i < taskNum; i++) {
             final int finalI = i;
             tasks.add(() -> {
+                final SocketClient client = startClient();
                 System.out.println("Task " + finalI);
-                return client.exchange(mess16);
+                final String res = client.exchange(mess16);
+                System.out.println("Task " + finalI + " res: " + res);
+                client.disconnect();
+                return res;
             });
         }
-        final List<Future<Object>> futures = executor.invokeAll(tasks, 2, TimeUnit.SECONDS);
+        final List<Future<Object>> futures = executor.invokeAll(tasks, 5, TimeUnit.SECONDS);
         assertFalse(futures.isEmpty());
         assertEquals(taskNum, futures.size());
         for (Future<Object> future : futures) {

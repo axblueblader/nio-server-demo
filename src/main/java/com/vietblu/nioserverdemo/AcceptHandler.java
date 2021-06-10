@@ -5,24 +5,22 @@ import java.nio.channels.AsynchronousServerSocketChannel;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
 import java.util.Deque;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ExecutorService;
 
 public class AcceptHandler implements CompletionHandler<AsynchronousSocketChannel, Object> {
     private final AsynchronousServerSocketChannel server;
     private final ExecutorService main;
     private final ExecutorService worker;
-    private final Deque<StringBuilder> deque;
     private final Integer bufferSize = (Integer) System.getProperties()
                                                        .getOrDefault("buffer_size", 8);
 
     public AcceptHandler(AsynchronousServerSocketChannel server,
                          ExecutorService main,
-                         ExecutorService worker,
-                         Deque<StringBuilder> deque) {
+                         ExecutorService worker) {
         this.server = server;
         this.main = main;
         this.worker = worker;
-        this.deque = deque;
     }
 
     @Override
@@ -30,6 +28,7 @@ public class AcceptHandler implements CompletionHandler<AsynchronousSocketChanne
         main.submit(() -> server.accept(null, this));
 
         final ByteBuffer buffer = ByteBuffer.allocate(bufferSize);
+        final Deque<StringBuilder> deque = new ConcurrentLinkedDeque<>();
         worker.submit(() -> channel.read(buffer, null,
                                          new ReadHandler(worker, channel, buffer, deque)));
     }
