@@ -11,7 +11,6 @@ import java.util.concurrent.Executors;
 public class NioServer implements Runnable {
     private final ExecutorService worker = Executors.newFixedThreadPool(2);
     private final ExecutorService main = Executors.newFixedThreadPool(1);
-    private final Deque<StringBuilder> dequeue = new ConcurrentLinkedDeque<>();
     private AsynchronousServerSocketChannel server;
 
     @Override
@@ -29,12 +28,13 @@ public class NioServer implements Runnable {
             //noinspection ResultOfMethodCallIgnored
             System.in.read();
         } catch (Exception e) {
-            e.printStackTrace();
+            System.out.println(e.getMessage());
         }
     }
 
     public void shutdown() {
         main.shutdown();
         worker.shutdown();
-    };
+    }
+
 }

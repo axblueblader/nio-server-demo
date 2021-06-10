@@ -78,6 +78,6 @@ public class ReadHandler implements CompletionHandler<Integer, Object> {
 
     @Override
     public void failed(Throwable exc, Object attachment) {
-        exc.printStackTrace();
+        System.out.println(exc.getMessage());
     }
 }

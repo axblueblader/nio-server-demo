@@ -35,6 +35,6 @@ public class AcceptHandler implements CompletionHandler<AsynchronousSocketChanne
 
     @Override
     public void failed(Throwable exc, Object attachment) {
-        exc.printStackTrace();
+        System.out.println(exc.getMessage());
     }
 }
