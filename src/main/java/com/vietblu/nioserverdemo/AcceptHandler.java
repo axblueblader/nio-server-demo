@@ -12,6 +12,8 @@ public class AcceptHandler implements CompletionHandler<AsynchronousSocketChanne
     private final ExecutorService main;
     private final ExecutorService worker;
     private final Deque<StringBuilder> deque;
+    private final Integer bufferSize = (Integer) System.getProperties()
+                                                       .getOrDefault("buffer_size", 8);
 
     public AcceptHandler(AsynchronousServerSocketChannel server,
                          ExecutorService main,
@@ -27,7 +29,7 @@ public class AcceptHandler implements CompletionHandler<AsynchronousSocketChanne
     public void completed(AsynchronousSocketChannel channel, Object attachment) {
         main.submit(() -> server.accept(null, this));
 
-        ByteBuffer buffer = ByteBuffer.allocate(5);
+        final ByteBuffer buffer = ByteBuffer.allocate(bufferSize);
         worker.submit(() -> channel.read(buffer, null,
                                          new ReadHandler(worker, channel, buffer, deque)));
     }

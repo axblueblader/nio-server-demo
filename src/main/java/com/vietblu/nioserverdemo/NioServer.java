@@ -10,10 +10,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class NioServer implements Runnable {
-    private AsynchronousServerSocketChannel server;
     private final ExecutorService worker = Executors.newFixedThreadPool(2);
     private final ExecutorService main = Executors.newFixedThreadPool(1);
     private final Deque<StringBuilder> dequeue = new ConcurrentLinkedDeque<>();
+    private AsynchronousServerSocketChannel server;
 
     @Override
     public void run() {
@@ -21,15 +21,21 @@ public class NioServer implements Runnable {
         try {
             group = AsynchronousChannelGroup.withThreadPool(worker);
             server = AsynchronousServerSocketChannel.open(group);
-            server.bind(new InetSocketAddress(8989));
+            final int port = 8989;
+            server.bind(new InetSocketAddress(port));
 
-            main.submit(() -> server.accept(null,
-                                            new AcceptHandler(server, main, worker, dequeue)));
+            main.submit(() -> server.accept(null, new AcceptHandler(server, main, worker, dequeue)));
 
+            System.out.println("Server started at: " + port);
             //noinspection ResultOfMethodCallIgnored
             System.in.read();
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
+
+    public void shutdown() {
+        main.shutdown();
+        worker.shutdown();
+    };
 }
