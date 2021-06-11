@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
-import java.util.Deque;
+import java.util.Queue;
 import java.util.concurrent.ExecutorService;
 import java.util.regex.Pattern;
 
@@ -16,16 +16,18 @@ public class ReadHandler implements CompletionHandler<Integer, Object> {
     private final ExecutorService worker;
     private final AsynchronousSocketChannel channel;
     private final ByteBuffer buffer;
-    private final Deque<StringBuilder> deque;
+    private StringBuffer messBuf;
+    private final Queue<String> writeQueue;
 
     public ReadHandler(ExecutorService worker,
                        AsynchronousSocketChannel channel,
                        ByteBuffer buffer,
-                       Deque<StringBuilder> deque) {
+                       StringBuffer messBuf, Queue<String> writeQueue) {
         this.worker = worker;
         this.channel = channel;
         this.buffer = buffer;
-        this.deque = deque;
+        this.messBuf = messBuf;
+        this.writeQueue = writeQueue;
     }
 
     @Override
@@ -35,45 +37,31 @@ public class ReadHandler implements CompletionHandler<Integer, Object> {
         }
         final String frame = new String(buffer.array(), buffer.arrayOffset(), buffer.position());
         try {
-            System.out.println("Received: " + frame + " from " + channel.getRemoteAddress());
+            System.out.println("From " + channel.getRemoteAddress().toString() + ":" + frame);
         } catch (IOException e) {
             e.printStackTrace();
         }
-        if (frame.contains(DELIM)) {
-            final String[] split = PATTERN.split(frame);
-            final StringBuilder last = deque.peekLast();
-            int i = 0;
-            if (last != null && !last.toString().endsWith(DELIM)) {
-                // append the message part to the ending of last builder
-                last.append(split[0]);
-                i++;
-            }
-            // add the rest of messages (full or partial) to dequeue as separate builders
-            for (; i < split.length; i++) {
-                deque.addLast(new StringBuilder(split[i]));
-            }
-        } else { // only a partial message
-            final StringBuilder last = deque.peekLast();
-            if (last == null || last.toString().endsWith(DELIM)) {
-                // add new message builder to end of dequeue
-                final StringBuilder builder = new StringBuilder(frame);
-                deque.addLast(builder);
-            } else {
-                // append partial message to last builder of dequeue
-                last.append(frame);
+        int startIdx = 0;
+        int endIdx;
+        while (frame.indexOf(DELIM, startIdx) != -1) {
+            endIdx = frame.indexOf(DELIM, startIdx) + 1;
+            messBuf.append(frame, startIdx, endIdx);
+            writeQueue.add(messBuf.toString());
+            this.messBuf = new StringBuffer();
+            startIdx = endIdx;
+        }
+        messBuf.append(frame, startIdx, frame.length());
+
+        if (!writeQueue.isEmpty()) {
+            String message = writeQueue.peek();
+            if (message != null) {
+                writeQueue.remove();
+                ByteBuffer writeBuf = ByteBuffer.wrap(message.getBytes());
+                channel.write(writeBuf, null, new WriteHandler(worker, channel, writeBuf, writeQueue));
             }
         }
-
-        worker.submit(() -> {
-            final StringBuilder message = deque.peekFirst();
-            if (message != null && message.toString().endsWith(DELIM)) {
-                final ByteBuffer writeBuf = ByteBuffer.wrap(message.toString().getBytes());
-                // echo
-                channel.write(writeBuf, null, new WriteHandler(worker, channel, deque, writeBuf));
-            }
-        });
         buffer.clear();
-        channel.read(buffer,null,this);
+        channel.read(buffer, null, this);
     }
 
     @Override

@@ -52,6 +52,30 @@ class NioServerTest {
     }
 
     @Test
+    void buf8_echo4Less8_success() throws Exception {
+        final SocketClient client = startClient();
+        final List<String> abcd = client.exchange("a\nb\nc\nd", 4);
+        client.disconnect();
+
+        assertEquals("a", abcd.get(0));
+        assertEquals("b", abcd.get(1));
+        assertEquals("c", abcd.get(2));
+        assertEquals("d", abcd.get(3));
+    }
+
+    @Test
+    void buf8_echo4Long_success() throws Exception {
+        final SocketClient client = startClient();
+        final List<String> abcd = client.exchange("12345678\n987654321\nabc\nd", 4);
+        client.disconnect();
+
+        assertEquals("12345678", abcd.get(0));
+        assertEquals("987654321", abcd.get(1));
+        assertEquals("abc", abcd.get(2));
+        assertEquals("d", abcd.get(3));
+    }
+
+    @Test
     void buf8_echo10Less8_success() throws Exception {
         final SocketClient client = startClient();
         for (int i = 0; i < 10; i++) {
@@ -93,24 +117,21 @@ class NioServerTest {
     }
 
     @Test
-    void buf8_echoThread3Task100Equal17_success() throws Exception {
+    void buf8_echoThread3Task10000Equal17_success() throws Exception {
         // String with 16 chars, including \n
         final String mess16 = new String(new char[15]).replace("\0", "p");
         final List<Callable<Object>> tasks = new ArrayList<>();
         final ExecutorService executor = Executors.newFixedThreadPool(3);
-        final int taskNum = 100;
+        final int taskNum = 10000;
         for (int i = 0; i < taskNum; i++) {
-            final int finalI = i;
             tasks.add(() -> {
                 final SocketClient client = startClient();
-                System.out.println("Task " + finalI);
                 final String res = client.exchange(mess16);
-                System.out.println("Task " + finalI + " res: " + res);
                 client.disconnect();
                 return res;
             });
         }
-        final List<Future<Object>> futures = executor.invokeAll(tasks, 5, TimeUnit.SECONDS);
+        final List<Future<Object>> futures = executor.invokeAll(tasks, 3000, TimeUnit.SECONDS);
         assertFalse(futures.isEmpty());
         assertEquals(taskNum, futures.size());
         for (Future<Object> future : futures) {

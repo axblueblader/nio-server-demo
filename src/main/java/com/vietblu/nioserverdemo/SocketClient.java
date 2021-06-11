@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.List;
 
 public class SocketClient {
     private final String host;
@@ -33,5 +35,17 @@ public class SocketClient {
 
     public void disconnect() throws IOException {
         socket.close();
+    }
+
+    public List<String> exchange(String mess, int num) throws IOException {
+        System.out.println(socket.getLocalSocketAddress() + " sending " + mess);
+        socketOut.println(mess);
+        socketOut.flush();
+        List<String> res = new ArrayList<>();
+        for (int i = 0; i < num; i++) {
+            String line = socketIn.readLine();
+            res.add(line);
+        }
+        return res;
     }
 }

@@ -1,11 +1,14 @@
 package com.vietblu.nioserverdemo;
 
+import javax.swing.plaf.synth.SynthTabbedPaneUI;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousServerSocketChannel;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
 import java.util.Deque;
+import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 
 public class AcceptHandler implements CompletionHandler<AsynchronousSocketChannel, Object> {
@@ -28,9 +31,10 @@ public class AcceptHandler implements CompletionHandler<AsynchronousSocketChanne
         main.submit(() -> server.accept(null, this));
 
         final ByteBuffer buffer = ByteBuffer.allocate(bufferSize);
-        final Deque<StringBuilder> deque = new ConcurrentLinkedDeque<>();
+        final StringBuffer messBuf = new StringBuffer();
+        final Queue<String> writeQueue = new ConcurrentLinkedQueue<>();
         worker.submit(() -> channel.read(buffer, null,
-                                         new ReadHandler(worker, channel, buffer, deque)));
+                                         new ReadHandler(worker, channel, buffer, messBuf, writeQueue)));
     }
 
     @Override
