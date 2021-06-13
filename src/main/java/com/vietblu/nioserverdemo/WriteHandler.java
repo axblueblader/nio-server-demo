@@ -22,7 +22,9 @@ public class WriteHandler implements CompletionHandler<Integer, Object> {
 
     @Override
     public void completed(Integer bytesWritten, Object attachment) {
-        if (bytesWritten <= 0 || !writeBuf.hasRemaining()) {
+        if (bytesWritten > 0 && writeBuf.hasRemaining()) {// write not finished, continue writing this buffer
+            channel.write(writeBuf, null, this);
+        } else {
             // Continue to write from the queue
             String message = writeQueue.peek();
             if (message != null) {
@@ -30,10 +32,7 @@ public class WriteHandler implements CompletionHandler<Integer, Object> {
                 ByteBuffer writeBuf = ByteBuffer.wrap(message.getBytes());
                 channel.write(writeBuf, null, new WriteHandler(worker, channel, writeBuf, writeQueue));
             }
-            return;
         }
-        // write not finished, continue writing this buffer
-        worker.submit(() -> channel.write(writeBuf, null, this));
     }
 
     @Override

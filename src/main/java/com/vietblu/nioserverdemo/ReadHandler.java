@@ -52,6 +52,9 @@ public class ReadHandler implements CompletionHandler<Integer, Object> {
         }
         messBuf.append(frame, startIdx, frame.length());
 
+        buffer.clear();
+        channel.read(buffer, null, this);
+
         if (!writeQueue.isEmpty()) {
             String message = writeQueue.peek();
             if (message != null) {
@@ -60,8 +63,6 @@ public class ReadHandler implements CompletionHandler<Integer, Object> {
                 channel.write(writeBuf, null, new WriteHandler(worker, channel, writeBuf, writeQueue));
             }
         }
-        buffer.clear();
-        channel.read(buffer, null, this);
     }
 
     @Override
